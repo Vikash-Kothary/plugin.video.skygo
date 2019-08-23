@@ -2,6 +2,8 @@ import os
 import time
 import hashlib
 import shutil
+import platform
+import struct
 
 import xbmc, xbmcaddon
 
@@ -94,7 +96,7 @@ def process_brightcove(data):
     else:
         raise Error(_.NO_BRIGHTCOVE_SRC)
 
-def migrate(new_addon_id):
+def migrate(new_addon_id, copy_userdata=True):
     def get_new_addon():
         try:
             return xbmcaddon.Addon(new_addon_id)
@@ -114,16 +116,50 @@ def migrate(new_addon_id):
     if not dst_addon:
         return
 
-    dst_profile = xbmc.translatePath(dst_addon.getAddonInfo('profile')).decode("utf-8")
+    if copy_userdata:
+        dst_profile = xbmc.translatePath(dst_addon.getAddonInfo('profile')).decode("utf-8")
 
-    if os.path.exists(dst_profile):
-        shutil.rmtree(dst_profile)
+        if os.path.exists(dst_profile):
+            shutil.rmtree(dst_profile)
 
-    xbmc.executeJSONRPC('{{"jsonrpc":"2.0","id":1,"method":"Addons.SetAddonEnabled","params":{{"addonid":"{}","enabled":false}}}}'.format(ADDON_ID))
-    xbmc.executeJSONRPC('{{"jsonrpc":"2.0","id":1,"method":"Addons.SetAddonEnabled","params":{{"addonid":"{}","enabled":false}}}}'.format(new_addon_id))
+        xbmc.executeJSONRPC('{{"jsonrpc":"2.0","id":1,"method":"Addons.SetAddonEnabled","params":{{"addonid":"{}","enabled":false}}}}'.format(ADDON_ID))
+        xbmc.executeJSONRPC('{{"jsonrpc":"2.0","id":1,"method":"Addons.SetAddonEnabled","params":{{"addonid":"{}","enabled":false}}}}'.format(new_addon_id))
 
-    shutil.copytree(ADDON_PROFILE, dst_profile)
+        shutil.copytree(ADDON_PROFILE, dst_profile)
 
-    xbmc.executeJSONRPC('{{"jsonrpc":"2.0","id":1,"method":"Addons.SetAddonEnabled","params":{{"addonid":"{}","enabled":true}}}}'.format(new_addon_id))
+        xbmc.executeJSONRPC('{{"jsonrpc":"2.0","id":1,"method":"Addons.SetAddonEnabled","params":{{"addonid":"{}","enabled":true}}}}'.format(new_addon_id))
 
     gui.ok(_(_.MIGRATE_OK, old_addon_id=ADDON_ID))
+
+def get_system_arch():
+    if xbmc.getCondVisibility('System.Platform.UWP') or '4n2hpmxwrvr6p' in xbmc.translatePath('special://xbmc/'):
+        system = 'UWP'
+    elif xbmc.getCondVisibility('System.Platform.Android'):
+        system = 'Android'
+    elif xbmc.getCondVisibility('System.Platform.IOS'):
+        system = 'IOS'
+    else:
+        system = platform.system()
+    
+    if system == 'Windows':
+        arch = platform.architecture()[0]
+
+    try:
+        arch = platform.machine()
+    except:
+        arch = ''
+
+    #64bit kernel with 32bit userland
+    if ('aarch64' in arch or 'arm64' in arch) and (struct.calcsize("P") * 8) == 32:
+        arch = 'armv7'
+
+    elif 'arm' in arch:
+        if 'v6' in arch:
+            arch = 'armv6'
+        else:
+            arch = 'armv7'
+            
+    elif arch == 'i686':
+        arch = 'i386'
+
+    return system, arch

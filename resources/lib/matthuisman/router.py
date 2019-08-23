@@ -1,4 +1,4 @@
-from urlparse import parse_qsl
+from urlparse import parse_qsl, urlparse, urlunparse
 from urllib import urlencode, unquote
 
 from . import signals
@@ -21,6 +21,22 @@ def route(url):
         add(url, f)
         return f
     return decorator
+
+def add_url_args(url, **kwargs):
+    parsed = urlparse(url)
+
+    if parsed.scheme.lower() != 'plugin':
+        return url
+
+    params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    params.update(**kwargs)
+    _url = params.pop(ROUTE_TAG, None)
+    if not _url:
+        return url
+
+    params['_is_live'] = params.pop(ROUTE_LIVE_TAG, None)
+
+    return build_url(_url, **params)
 
 # @router.parse_url('?_=_settings')
 def parse_url(url):

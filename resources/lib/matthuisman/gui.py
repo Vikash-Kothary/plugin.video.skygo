@@ -115,6 +115,7 @@ class Item(object):
         self.audio       = audio or {}
         self.subtitles   = subtitles or []
         self.inputstream = inputstream
+        self.mimetype    = None
         self._is_folder  = is_folder
 
     @property
@@ -206,6 +207,10 @@ class Item(object):
             if self.inputstream.mimetype:
                 li.setMimeType(self.inputstream.mimetype)
                 li.setContentLookup(False)
+
+        if self.mimetype:
+            li.setMimeType(self.mimetype)
+            li.setContentLookup(False)
 
         if headers and self.path and self.path.startswith('http'):
             self.path += '|{}'.format(headers)

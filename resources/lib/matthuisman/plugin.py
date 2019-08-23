@@ -6,11 +6,11 @@ from functools import wraps
 
 import xbmc, xbmcplugin
 
-from . import router, gui, settings, userdata, inputstream, signals
-from .constants import ROUTE_SETTINGS, ROUTE_RESET, ROUTE_SERVICE, ROUTE_CLEAR_CACHE, ROUTE_IA_SETTINGS, ROUTE_IA_INSTALL, ROUTE_IA_QUALITY, ADDON_ICON, ADDON_FANART, ADDON_ID, ADDON_NAME, ROUTE_AUTOPLAY_TAG, ADDON_PROFILE
+from . import router, gui, settings, userdata, inputstream, signals, quality_player
+from .constants import ROUTE_SETTINGS, ROUTE_RESET, ROUTE_SERVICE, ROUTE_CLEAR_CACHE, ROUTE_IA_SETTINGS, ROUTE_IA_INSTALL, ADDON_ICON, ADDON_FANART, ADDON_ID, ADDON_NAME, ROUTE_AUTOPLAY_TAG, ADDON_PROFILE, QUALITY_TAG, QUALITY_ASK
 from .log import log
 from .language import _
-from .exceptions import PluginError
+from .exceptions import PluginError, Exit
 
 ## SHORTCUTS
 url_for         = router.url_for
@@ -47,8 +47,8 @@ def route(url=None):
                 _autoplay(item, pattern)
             elif isinstance(item, Folder):
                 item.display()
-            elif isinstance(item, Item):                    
-                item.play()
+            elif isinstance(item, Item):
+                item.play(quality=kwargs.get(QUALITY_TAG))
             else:
                 resolve()
 
@@ -74,6 +74,7 @@ def merge():
                 
         return decorated_function
     return lambda f: decorator(f)
+
 
 def resolve():
     if _handle() > 0:
@@ -106,10 +107,6 @@ def _exception(e):
 def _home(**kwargs):
     raise PluginError(_.PLUGIN_NO_DEFAULT_ROUTE)
 
-@route(ROUTE_IA_QUALITY)
-def _ia_quality(**kwargs):
-    inputstream.set_quality()
-
 @route(ROUTE_IA_SETTINGS)
 def _ia_settings(**kwargs):
     _close()
@@ -139,12 +136,14 @@ def _reset(**kwargs):
     if not gui.yes_no(_.PLUGIN_RESET_YES_NO):
         return
 
-    xbmc.executeJSONRPC('{{"jsonrpc":"2.0","id":1,"method":"Addons.SetAddonEnabled","params":{{"addonid":"{}","enabled":false}}}}'.format(ADDON_ID))
-
     _close()
-    userdata.clear()
-    shutil.rmtree(ADDON_PROFILE)
 
+    try:
+        xbmc.executeJSONRPC('{{"jsonrpc":"2.0","id":1,"method":"Addons.SetAddonEnabled","params":{{"addonid":"{}","enabled":false}}}}'.format(ADDON_ID))
+        shutil.rmtree(ADDON_PROFILE)
+    except:
+        pass
+        
     xbmc.executeJSONRPC('{{"jsonrpc":"2.0","id":1,"method":"Addons.SetAddonEnabled","params":{{"addonid":"{}","enabled":true}}}}'.format(ADDON_ID))
 
     gui.notification(_.PLUGIN_RESET_OK)
@@ -189,24 +188,41 @@ def _autoplay(folder, pattern):
 
 #Plugin.Item()
 class Item(gui.Item):
-    def __init__(self, cache_key=None, *args, **kwargs):
+    def __init__(self, cache_key=None, playback_error=None, *args, **kwargs):
         super(Item, self).__init__(self, *args, **kwargs)
         self.cache_key = cache_key
+        self.playback_error = playback_error
 
     def get_li(self):
-        if settings.getBool('use_cache', True) and self.cache_key:
-            url = url_for(ROUTE_CLEAR_CACHE, key=self.cache_key)
-            self.context.append((_.PLUGIN_CONTEXT_CLEAR_CACHE, 'XBMC.RunPlugin({})'.format(url)))
+        # if settings.getBool('use_cache', True) and self.cache_key:
+        #     url = url_for(ROUTE_CLEAR_CACHE, key=self.cache_key)
+        #     self.context.append((_.PLUGIN_CONTEXT_CLEAR_CACHE, 'XBMC.RunPlugin({})'.format(url)))
+
+        if self.playable and settings.getBool('quality_enabled', True):
+            url = router.add_url_args(self.path, **{QUALITY_TAG: QUALITY_ASK})
+            self.context.append((_.PLAY_AT_QUALITY, 'XBMC.PlayMedia({})'.format(url)))
 
         return super(Item, self).get_li()
 
-    def play(self):
-        li = self.get_li()
+    def play(self, quality=None):
+        try:
+            if sys.argv[3] == 'resume:true':
+                self.properties.pop('ResumeTime', None)
+                self.properties.pop('TotalTime', None)
+        except:
+            pass
+
+        if settings.getBool('quality_enabled', True):
+            result = quality_player.parse(self, quality=quality)
+        else:
+            result = True
+        
+        li     = self.get_li()
         handle = _handle()
 
         if handle > 0:
-            xbmcplugin.setResolvedUrl(handle, True, li)
-        else:
+            xbmcplugin.setResolvedUrl(handle, result, li)
+        elif result:
             xbmc.Player().play(self.path, li)
 
 #Plugin.Folder()
@@ -260,4 +276,9 @@ class Folder(object):
         return item
 
     def add_items(self, items):
-        self.items.extend(items)
+        if isinstance(items, list):
+            self.items.extend(items)
+        elif isinstance(items, Item):
+            self.items.append(items)
+        else:
+            raise Exception('add_items only accepts an Item or list of Items')

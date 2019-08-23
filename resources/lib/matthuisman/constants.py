@@ -46,7 +46,6 @@ ROUTE_RESET            = '_reset'
 ROUTE_SETTINGS         = '_settings'
 ROUTE_IA_SETTINGS      = '_ia_settings'
 ROUTE_IA_INSTALL       = '_ia_install'
-ROUTE_IA_QUALITY       = '_ia_quality'
 ROUTE_CLEAR_CACHE      = '_clear_cache'
 ROUTE_SERVICE          = '_service'
 ROUTE_SERVICE_INTERVAL = (60*5)
@@ -63,6 +62,7 @@ IA_VERSION_KEY  = '_version'
 IA_HLS_MIN_VER  = 2
 IA_MPD_MIN_VER  = 2
 IA_MODULES_URL  = 'https://k.mjh.nz/.decryptmodules/modules.v2.json'
+IA_CHECK_EVERY  = 86400 #24 hours
 ###################
 
 #### MISC #####
@@ -82,3 +82,13 @@ SESSION_CHUNKSIZE = 4096
 
 #### GUI ####
 GUI_DEFAULT_AUTOCLOSE = 120000 #2mins
+
+## QUALITY ##
+QUALITY_ASK       = -1
+QUALITY_BEST      = -2
+QUALITY_CUSTOM    = -3
+QUALITY_PASS      = -4
+QUALITY_LOWEST    = -5
+DEFAULT_QUALITY   = QUALITY_PASS
+QUALITY_TAG       = '_quality'
+ROUTE_QUALITY     = '_select_quality'

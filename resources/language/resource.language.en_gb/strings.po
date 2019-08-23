@@ -132,11 +132,12 @@ msgid "No default route found"
 msgstr ""
 
 msgctxt "#32002"
-msgid "Are you sure you want to clear this plugins data?"
+msgid "Are you sure you want to reset this add-on?\n"
+"This will reset all settings and clear all data"
 msgstr ""
 
 msgctxt "#32003"
-msgid "Data Cleared"
+msgid "Reset Complete"
 msgstr ""
 
 msgctxt "#32004"
@@ -160,22 +161,22 @@ msgid "Inpustream Adaptive add-on required for Widevine playback"
 msgstr ""
 
 msgctxt "#32009"
-msgid "Kodi Windows Store (UWP) version does not support Widevine DRM playback.\n"
-"Use the Kodi installer for Windows from the Kodi website instead."
+msgid "Kodi Windows Store (UWP) version does not support Widevine playback.\n"
+"Use the Kodi .exe installer from the Kodi website instead."
 msgstr ""
 
 msgctxt "#32010"
-msgid "Kodi 18 or higher required for Widevine DRM playback on {system}"
+msgid "Kodi 18 or higher required for Widevine playback on {system}"
 msgstr ""
 
 msgctxt "#32011"
-msgid "ARM 64bit does not support Widevine DRM playback\n"
+msgid "ARM 64bit does not support Widevine playback\n"
 "An OS with a 32-bit userspace is required.\n"
 "Try coreelec.org"
 msgstr ""
 
 msgctxt "#32012"
-msgid "This system ({system}{arch} Kodi v{kodi_version}) does not yet support Widevine Playback"
+msgid "This system ({system}{arch} Kodi v{kodi_version}) does not yet support Widevine playback"
 msgstr ""
 
 msgctxt "#32013"
@@ -188,11 +189,11 @@ msgid "Downloading required file\n"
 msgstr ""
 
 msgctxt "#32015"
-msgid "Widevine DRM"
+msgid "Widevine CDM"
 msgstr ""
 
 msgctxt "#32016"
-msgid "There was an unexpected error installing Widevine\n"
+msgid "There was an unexpected error installing the Widevine CDM\n"
 "Please restart KODI and try again"
 msgstr ""
 
@@ -205,7 +206,7 @@ msgid "Inputstream Settings"
 msgstr ""
 
 msgctxt "#32019"
-msgid "Clear Data"
+msgid "Reset Add-on"
 msgstr ""
 
 msgctxt "#32020"
@@ -213,11 +214,11 @@ msgid "{addon} - Error"
 msgstr ""
 
 msgctxt "#32021"
-msgid "Install Widevine DRM"
+msgid "Install Widevine CDM"
 msgstr ""
 
 msgctxt "#32022"
-msgid "Widevine DRM Installed OK\n"
+msgid "Widevine CDM Installed OK\n"
 "If videos do not play, please restart KODI and try again"
 msgstr ""
 
@@ -283,8 +284,9 @@ msgid "Verify SSL Certs"
 msgstr ""
 
 msgctxt "#32038"
-msgid "Existing Widevine DRM found.\n"
-"Would you like to override it?"
+msgid "New Widevine CDM available!\n"
+"Using an old version may cause playback issues\n"
+"Download and override existing CDM?"
 msgstr ""
 
 msgctxt "#32039"
@@ -301,31 +303,31 @@ msgid "No Items"
 msgstr ""
 
 msgctxt "#32042"
-msgid "Set Inputstream Quality"
+msgid "Default Playback Quality"
 msgstr ""
 
 msgctxt "#32043"
-msgid "Max"
+msgid "Best"
 msgstr ""
 
 msgctxt "#32044"
-msgid "{bandwidth} MiB/s (1080p)"
+msgid "{bandwidth} Mbit/s (1080p)"
 msgstr ""
 
 msgctxt "#32045"
-msgid "{bandwidth} MiB/s (720p)"
+msgid "{bandwidth} Mbit/s (720p)"
 msgstr ""
 
 msgctxt "#32046"
-msgid "{bandwidth} MiB/s (480p)"
+msgid "{bandwidth} Mbit/s (540p)"
 msgstr ""
 
 msgctxt "#32047"
-msgid "Quality set: {bandwidth} MiB/s"
+msgid "{bandwidth} Mbit/s (480p)"
 msgstr ""
 
 msgctxt "#32048"
-msgid "{bandwidth} MiB/s (540p)"
+msgid "Pass-through"
 msgstr ""
 
 msgctxt "#32049"
@@ -335,7 +337,7 @@ msgstr ""
 msgctxt "#32050"
 msgid "This add-on has moved\n"
 "A new add-on '{new_addon_id}' is therefore required\n"
-"Install and migrate settings to new add-on?"
+"Install and migrate to new add-on?"
 msgstr ""
 
 msgctxt "#32051"
@@ -345,4 +347,44 @@ msgstr ""
 
 msgctxt "#32052"
 msgid "Unknown Error"
+msgstr ""
+
+msgctxt "#32053"
+msgid "Play at Quality"
+msgstr ""
+
+msgctxt "#32054"
+msgid "Custom"
+msgstr ""
+
+msgctxt "#32055"
+msgid "Ask"
+msgstr ""
+
+msgctxt "#32056"
+msgid "Quality Set: {label}"
+msgstr ""
+
+msgctxt "#32057"
+msgid "Playback URL returned error code: {error_code}"
+msgstr ""
+
+msgctxt "#32058"
+msgid "{bandwidth} bit/s"
+msgstr ""
+
+msgctxt "#32059"
+msgid "Enter maximum bandwidth (bit/s)"
+msgstr ""
+
+msgctxt "#32060"
+msgid "Lowest"
+msgstr ""
+
+msgctxt "#32061"
+msgid "Playback Quality"
+msgstr ""
+
+msgctxt "#32062"
+msgid "Enable Quality Select"
 msgstr ""
