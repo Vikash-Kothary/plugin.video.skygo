@@ -1,16 +1,14 @@
 from string import ascii_uppercase
 
-from xml.sax.saxutils import escape
-
-import arrow
 import xbmcplugin
 
 from matthuisman import plugin, gui, userdata, signals, inputstream, settings
 from matthuisman.exceptions import Error
 from matthuisman.constants import ADDON_ID
+from matthuisman.session import Session
 
 from .api import API
-from .constants import IMAGE_URL, HEADERS
+from .constants import IMAGE_URL, HEADERS, EPG_URL
 from .language import _
 
 api = API()
@@ -328,28 +326,5 @@ def playlist(output, **kwargs):
 
 @plugin.route()
 @plugin.merge()
-def epg(output, days, **kwargs):
-    now = arrow.utcnow()
-
-    with open(output, 'wb') as f:
-        f.write('<?xml version="1.0" encoding="utf-8" ?><tv>')
-        
-        ids = []
-        for row in _get_channels():
-            if not row['channel']:
-                continue
-
-            f.write('<channel id="{}"><display-name>{}</display-name><icon src="{}"/></channel>'.format(row['channel'], escape(row['label']).encode('utf8'), escape(row['image'])))
-            ids.append(row['channel'])
-
-        for i in range(int(days)):
-            for row in api.epg(ids, start=now.shift(days=i)):
-                genre = row.get('genres', '')
-                if genre:
-                    genre = genre[0]
-
-                f.write('<programme channel="{}" start="{}" stop="{}"><title>{}</title><desc>{}</desc><category>{}</category></programme>'.format(
-                    row['channel'], arrow.get(row['start']).format('YYYYMMDDHHmmss Z'), arrow.get(row['end']).format('YYYYMMDDHHmmss Z'), escape(row['title']).encode('utf8'),
-                    escape(row.get('synopsis', '')).encode('utf8'), escape(genre).encode('utf8')))
-
-        f.write('</tv>')
+def epg(output, **kwargs):
+    Session().chunked_dl(EPG_URL, output)

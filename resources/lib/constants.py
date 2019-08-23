@@ -6,6 +6,8 @@ HEADERS = {
     'X-Forwarded-For': '202.89.4.222',
 }
 
+EPG_URL = 'http://i.mjh.nz/nz/Sky/skygo.xml'
+
 DEVICE_IP    = '192.168.1.1'
 CHANNELS_URL = 'https://feed.theplatform.com/f/7tMqSC/O5wnnwnQqDWV?form=json'
 AUTH_URL     = 'https://4azub3wqb8.execute-api.ap-southeast-2.amazonaws.com/prod/auth/skygo/token/v1/authenticate/'
@@ -16,5 +18,5 @@ IMAGE_URL    = 'https://prod-images.skygo.co.nz/{}'
 PLAY_URL     = 'https://feed.theplatform.com/f/7tMqSC/T2XJ65T_soBz'
 PLAY_CHANNEL_URL  = 'https://link.theplatform.com/s/7tMqSC/media/{id}?feed=SkyGo&auth={auth}'
 SUBSCRIPTIONS_URL = 'https://z4a6uom8wa.execute-api.ap-southeast-2.amazonaws.com/prod/v2/onlineSubscriptions/?profileId={}'
-EPG_URL           = 'https://www.sky.co.nz/search-service/rest/events'
+#EPG_URL           = 'https://www.sky.co.nz/search-service/rest/events'
 WIDEVINE_URL = 'https://widevine.entitlement.theplatform.com/wv/web/ModularDrm/getWidevineLicense?schema=1.0&token={token}&form=json&account=http://access.auth.theplatform.com/data/Account/2682481291&_releasePid={pid}&_widevineChallenge={challenge}'
