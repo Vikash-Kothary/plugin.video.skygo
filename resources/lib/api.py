@@ -8,7 +8,7 @@ from matthuisman.session import Session
 from matthuisman.log import log
 from matthuisman.exceptions import Error
 
-from .constants import HEADERS, AUTH_URL, RENEW_URL, CHANNELS_URL, TOKEN_URL, DEVICE_IP, CONTENT_URL, PLAY_URL, WIDEVINE_URL, SUBSCRIPTIONS_URL, PLAY_CHANNEL_URL, EPG_URL
+from .constants import HEADERS, AUTH_URL, RENEW_URL, CHANNELS_URL, TOKEN_URL, DEVICE_IP, CONTENT_URL, PLAY_URL, WIDEVINE_URL, SUBSCRIPTIONS_URL, PLAY_CHANNEL_URL
 from .language import _
 
 class APIError(Error):
@@ -168,18 +168,6 @@ class API(object):
         url = self._get_location(url)
 
         return url
-
-    def epg(self, ids, start=None, end=None):
-        start = start or arrow.utcnow()
-        end   = end   or start.shift(days=1)
-
-        params = {
-            'startTimestamp': '{}000'.format(start.timestamp),
-            'endTimestamp':   '{}000'.format(end.timestamp),
-            'channelIds':     ','.join(ids),
-        }
-
-        return self._session.get(EPG_URL, params=params).json()['events']
 
     def logout(self):
         userdata.delete('device_id')

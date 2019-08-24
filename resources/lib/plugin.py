@@ -5,10 +5,9 @@ import xbmcplugin
 from matthuisman import plugin, gui, userdata, signals, inputstream, settings
 from matthuisman.exceptions import Error
 from matthuisman.constants import ADDON_ID
-from matthuisman.session import Session
 
 from .api import API
-from .constants import IMAGE_URL, HEADERS, EPG_URL
+from .constants import IMAGE_URL, HEADERS
 from .language import _
 
 api = API()
@@ -323,8 +322,3 @@ def playlist(output, **kwargs):
         for row in _get_channels():
             f.write('#EXTINF:-1 tvg-id="{id}" tvg-chno="{channel}" tvg-name="{name}" tvg-logo="{logo}",{name}\n{path}\n'.format(
                         id=row['channel'], channel=row['channel'], name=row['label'].encode('utf8'), logo=row['image'], path=row['path']))
-
-@plugin.route()
-@plugin.merge()
-def epg(output, **kwargs):
-    Session().chunked_dl(EPG_URL, output)
