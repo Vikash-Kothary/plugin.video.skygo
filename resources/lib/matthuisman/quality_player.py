@@ -187,6 +187,7 @@ def parse_m3u8(item, quality):
     if not ADDON_DEV:
         httpd_thread.start()
 
+    item.headers = resp.request.headers
     item.cookies.update(resp.cookies)
     item.mimetype = 'application/x-mpegURL'
 
