@@ -311,19 +311,19 @@ msgid "Best"
 msgstr ""
 
 msgctxt "#32044"
-msgid "{bandwidth} Mbit/s (1080p)"
+msgid "Max: {bandwidth} Mbit/s (1080p)"
 msgstr ""
 
 msgctxt "#32045"
-msgid "{bandwidth} Mbit/s (720p)"
+msgid "Max: {bandwidth} Mbit/s (720p)"
 msgstr ""
 
 msgctxt "#32046"
-msgid "{bandwidth} Mbit/s (540p)"
+msgid "Max: {bandwidth} Mbit/s (540p)"
 msgstr ""
 
 msgctxt "#32047"
-msgid "{bandwidth} Mbit/s (480p)"
+msgid "Max: {bandwidth} Mbit/s (480p)"
 msgstr ""
 
 msgctxt "#32048"
@@ -388,3 +388,20 @@ msgstr ""
 msgctxt "#32062"
 msgid "Enable Quality Select"
 msgstr ""
+
+msgctxt "#32063"
+msgid "Live Play Action"
+msgstr ""
+
+msgctxt "#32064"
+msgid "From Start"
+msgstr ""
+
+msgctxt "#32065"
+msgid "From Live"
+msgstr ""
+
+msgctxt "#32066"
+msgid "Ask"
+msgstr ""
+

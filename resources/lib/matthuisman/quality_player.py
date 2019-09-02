@@ -26,12 +26,10 @@ QUALIITES = [
     [2000000, _.QUALITY_480P],
 ]
 
-def get_quality():
-    return userdata.get('quality', DEFAULT_QUALITY)
-
-def select_quality(qualities=None, ask_option=False, save=False, current=None):
+def select_quality(qualities=None, is_settings=False):
     options = []
-    if ask_option:
+
+    if is_settings:
         options.append([QUALITY_ASK, _.QUALITY_ASK])
 
     options.append([QUALITY_BEST, _.QUALITY_BEST])
@@ -42,6 +40,11 @@ def select_quality(qualities=None, ask_option=False, save=False, current=None):
 
     values = [x[0] for x in options]
     labels = [x[1].format(bandwidth=int(x[0]/1000000)) for x in options]
+
+    if is_settings:
+        current = userdata.get('quality', DEFAULT_QUALITY)
+    else:
+        current = userdata.get('last_quality')
 
     if current:
         try:
@@ -66,15 +69,17 @@ def select_quality(qualities=None, ask_option=False, save=False, current=None):
         value = int(value)
         label = _(_.QUALITY_CUSTOM_LABEL, bandwidth=value)
 
-    if save:
+    if is_settings:
         userdata.set('quality', value)
-        gui.notification(_(_.QUALITY_SET, label=label))    
+        gui.notification(_(_.QUALITY_SET, label=label))
+    else:
+        userdata.set('last_quality', value)
 
     return value
 
 @router.route(ROUTE_QUALITY)
 def _select_quality(**kwargs):
-    select_quality(ask_option=True, save=True, current=get_quality())
+    select_quality(is_settings=True)
 
 class MainHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -114,14 +119,15 @@ def parse_m3u8(item, quality):
     if not base_url.endswith('/'):
         base_url += '/'
 
-    text = re.sub(r'URI="((?!http://|https://).*)"', r'URI="{}\1"'.format(base_url), resp.text, flags=re.I)
+    pattern = re.compile('(URI\s*=\s*["\']?)(?!http)([^"\'>]+)', re.IGNORECASE)
+    text    = pattern.sub(lambda m: m.group(1) + urljoin(base_url, m.group(2)), resp.text)
 
     lines = []
     streams = []
     found = None
     marker = '#EXT-X-STREAM-INF:'
     pattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
-
+    
     for line in text.split('\n'):
         line = line.strip()
 
@@ -131,9 +137,8 @@ def parse_m3u8(item, quality):
         if line.startswith(marker):
             found = line
         elif found and not line.startswith('#'):
-            url = line
-            if not url.lower().startswith('http'):
-                url = urljoin(base_url, url)
+            if not line.lower().startswith('http'):
+                line = urljoin(base_url, line)
 
             params = pattern.split(found.replace(marker, ''))[1::2]
 
@@ -147,11 +152,11 @@ def parse_m3u8(item, quality):
 
             bandwidth = attributes.get('bandwidth')
             if bandwidth:
-                streams.append({'bandwidth': int(bandwidth), 'resolution': attributes.get('resolution', ''), 'framerate': attributes.get('frame-rate', ''), 'url': url, 'line': found})
+                streams.append({'bandwidth': int(bandwidth), 'resolution': attributes.get('resolution', ''), 'framerate': attributes.get('frame-rate', ''), 'line1': found, 'line2': line})
 
             found = None
-        else:
-            lines.append(line)
+
+        lines.append(line)
 
     streams = sorted(streams, key=lambda s: s['bandwidth'], reverse=True)
     if not streams:
@@ -168,11 +173,14 @@ def parse_m3u8(item, quality):
             if stream['bandwidth'] <= quality:
                 selected = stream
                 break
-    
-    lines.append(selected['line'])
-    lines.append(selected['url'])
 
-    text = '\n'.join(lines)
+    to_remove = []
+    for stream in streams:
+        if stream != selected:
+            to_remove.extend([stream['line1'], stream['line2']])
+        
+    write_lines = [l for l in lines if l not in to_remove]
+    text = '\n'.join(write_lines)
 
     with open(PROXY_FILE, 'wb') as f:
         f.write(text)
@@ -286,7 +294,7 @@ def parse(item, quality=None):
         return True
 
     if quality is None:
-        quality = get_quality()
+        quality = userdata.get('quality', DEFAULT_QUALITY)
     else:
         quality = int(quality)
 

@@ -93,6 +93,10 @@ class BaseLanguage(object):
     QUALITY_LOWEST              = 32060
     SELECT_QUALITY              = 32061
     ENABLE_QUALITY              = 32062
+    PLAY_FROM                   = 32063
+    PLAY_FROM_START             = 32064
+    PLAY_FROM_LIVE              = 32065
+    PLAY_FROM_ASK               = 32066
 
     def __getattribute__(self, name):
         attr = object.__getattribute__(self, name)

@@ -4,7 +4,6 @@ import xbmcplugin
 
 from matthuisman import plugin, gui, userdata, signals, inputstream, settings
 from matthuisman.exceptions import Error
-from matthuisman.constants import ADDON_NAME
 
 from .api import API
 from .constants import IMAGE_URL, HEADERS
@@ -320,5 +319,5 @@ def playlist(output, **kwargs):
         f.write('#EXTM3U\n')
 
         for row in _get_channels():
-            f.write('#EXTINF:-1 tvg-id="{id}" tvg-chno="{channel}" group-title="{group}" tvg-name="{name}" tvg-logo="{logo}",{name}\n{path}\n'.format(
-                        id=row['channel'], channel=row['channel'], group=ADDON_NAME.encode('utf8'), name=row['label'].encode('utf8'), logo=row['image'], path=row['path']))
+            f.write('#EXTINF:-1 tvg-id="{id}" tvg-chno="{channel}" tvg-logo="{logo}",{name}\n{path}\n'.format(
+                        id=row['channel'], channel=row['channel'], name=row['label'].encode('utf8'), logo=row['image'], path=row['path']))
