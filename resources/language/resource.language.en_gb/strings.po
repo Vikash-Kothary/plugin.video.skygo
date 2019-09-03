@@ -310,21 +310,6 @@ msgctxt "#32043"
 msgid "Best"
 msgstr ""
 
-msgctxt "#32044"
-msgid "Max: {bandwidth} Mbit/s (1080p)"
-msgstr ""
-
-msgctxt "#32045"
-msgid "Max: {bandwidth} Mbit/s (720p)"
-msgstr ""
-
-msgctxt "#32046"
-msgid "Max: {bandwidth} Mbit/s (540p)"
-msgstr ""
-
-msgctxt "#32047"
-msgid "Max: {bandwidth} Mbit/s (480p)"
-msgstr ""
 
 msgctxt "#32048"
 msgid "Pass-through"
@@ -369,10 +354,6 @@ msgctxt "#32057"
 msgid "Playback URL returned error code: {error_code}"
 msgstr ""
 
-msgctxt "#32058"
-msgid "{bandwidth} bit/s"
-msgstr ""
-
 msgctxt "#32059"
 msgid "Enter maximum bandwidth (bit/s)"
 msgstr ""
@@ -405,3 +386,14 @@ msgctxt "#32066"
 msgid "Ask"
 msgstr ""
 
+msgctxt "#32067"
+msgid "Play From?"
+msgstr ""
+
+msgctxt "#32068"
+msgid "{bandwidth:.2f} Mbit/s {resolution} {fps}"
+msgstr ""
+
+msgctxt "#32069"
+msgid "{fps:.2f} FPS"
+msgstr ""

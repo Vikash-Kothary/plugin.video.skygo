@@ -16,15 +16,9 @@ from .language import _
 from .constants import QUALITY_ASK, QUALITY_BEST, QUALITY_CUSTOM, QUALITY_PASS, QUALITY_LOWEST, DEFAULT_QUALITY, ROUTE_QUALITY
 from .log import log
 from .exceptions import Error
+from .parser import M3U8, MPD
 
 PROXY_FILE = xbmc.translatePath('special://temp/proxy_playlist.m3u8')
-
-QUALIITES = [
-    [8000000, _.QUALITY_1080P],
-    [6000000, _.QUALITY_720P],
-    [4000000, _.QUALITY_540P],
-    [2000000, _.QUALITY_480P],
-]
 
 def select_quality(qualities=None, is_settings=False):
     options = []
@@ -33,27 +27,33 @@ def select_quality(qualities=None, is_settings=False):
         options.append([QUALITY_ASK, _.QUALITY_ASK])
 
     options.append([QUALITY_BEST, _.QUALITY_BEST])
-    options.extend(qualities or QUALIITES)
-    options.append([QUALITY_CUSTOM, _.QUALITY_CUSTOM])
+    options.extend(qualities or [[QUALITY_CUSTOM, _.QUALITY_CUSTOM]])
     options.append([QUALITY_LOWEST, _.QUALITY_LOWEST])
     options.append([QUALITY_PASS, _.QUALITY_PASSTHROUGH])
 
     values = [x[0] for x in options]
-    labels = [x[1].format(bandwidth=int(x[0]/1000000)) for x in options]
+    labels = [x[1] for x in options]
 
     if is_settings:
         current = userdata.get('quality', DEFAULT_QUALITY)
     else:
         current = userdata.get('last_quality')
 
+    default = 0
     if current:
         try:
             default = values.index(current)
         except:
-            default = values.index(QUALITY_CUSTOM) if current > 0 else 0
-    else:
-        default = 0
+            if not qualities:
+                default = values.index(QUALITY_CUSTOM) if current > 0 else 0
+            else:
+                default = values.index(qualities[-1][0])
 
+                for quality in qualities:
+                    if quality[0] <= current:
+                        default = values.index(quality[0])
+                        break
+                
     index = gui.select(_.SELECT_QUALITY, labels, preselect=default)
     if index < 0:
         return None
@@ -67,7 +67,7 @@ def select_quality(qualities=None, is_settings=False):
             return None
 
         value = int(value)
-        label = _(_.QUALITY_CUSTOM_LABEL, bandwidth=value)
+        label = _(_.QUALITY_BITRATE, bandwidth=float(value)/1000000, resolution='', fps='').strip()
 
     if is_settings:
         userdata.set('quality', value)
@@ -110,82 +110,31 @@ def parse_m3u8(item, quality):
     if not result:
         raise Error(_(_.PLAYBACK_ERROR, error_code=resp.status_code))
 
-    parsed_url = urlparse(resp.url)
-    prefix     = parsed_url.scheme + '://' + parsed_url.netloc
-    path       = parsed_url.path.replace('//', '/')
-    base_path  = posixpath.normpath(path + '/..')
-    base_url   = urljoin(prefix, base_path)
+    item.headers = resp.request.headers
+    item.cookies.update(resp.cookies)
+    item.mimetype = 'application/x-mpegURL'
 
-    if not base_url.endswith('/'):
-        base_url += '/'
+    m3u8 = M3U8(resp.text, resp.url)
+    qualities = m3u8.qualities()
+    if not qualities:
+        return True
 
-    pattern = re.compile('(URI\s*=\s*["\']?)(?!http)([^"\'>]+)', re.IGNORECASE)
-    text    = pattern.sub(lambda m: m.group(1) + urljoin(base_url, m.group(2)), resp.text)
+    if quality == QUALITY_ASK:
+        quality = select_quality(qualities)
+        if not quality:
+            return False
 
-    lines = []
-    streams = []
-    found = None
-    marker = '#EXT-X-STREAM-INF:'
-    pattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
-    
-    for line in text.split('\n'):
-        line = line.strip()
+    if quality == QUALITY_PASS:
+        return True
 
-        if not line:
-            continue
-
-        if line.startswith(marker):
-            found = line
-        elif found and not line.startswith('#'):
-            if not line.lower().startswith('http'):
-                line = urljoin(base_url, line)
-
-            params = pattern.split(found.replace(marker, ''))[1::2]
-
-            attributes = {}
-            for param in params:
-                name, value = param.split('=', 1)
-                name  = name.replace('-', '_').lower().strip()
-                value = value.lstrip('"').rstrip('"')
-
-                attributes[name] = value
-
-            bandwidth = attributes.get('bandwidth')
-            if bandwidth:
-                streams.append({'bandwidth': int(bandwidth), 'resolution': attributes.get('resolution', ''), 'framerate': attributes.get('frame-rate', ''), 'line1': found, 'line2': line})
-
-            found = None
-
-        lines.append(line)
-
-    streams = sorted(streams, key=lambda s: s['bandwidth'], reverse=True)
-    if not streams:
-        return
-
-    if quality == QUALITY_BEST:
-        selected = streams[0]
-    elif quality == QUALITY_LOWEST:
-        selected = streams[-1]
-    else:
-        selected = streams[-1]
-
-        for stream in streams:
-            if stream['bandwidth'] <= quality:
-                selected = stream
-                break
-
-    to_remove = []
-    for stream in streams:
-        if stream != selected:
-            to_remove.extend([stream['line1'], stream['line2']])
-        
-    write_lines = [l for l in lines if l not in to_remove]
-    text = '\n'.join(write_lines)
-
+    text = m3u8.at_quality(quality)
     with open(PROXY_FILE, 'wb') as f:
         f.write(text)
 
     server_address = ('127.0.0.1', 9977)
+
+    ## need to use .m3u8 or headers break
+    item.path = 'http://{host}:{port}/{random}/playlist.m3u8'.format(host=server_address[0], port=server_address[1], random=int(time.time()))
 
     httpd          = HTTPServer(server_address, MainHandler)
     httpd.timeout  = 5
@@ -195,12 +144,7 @@ def parse_m3u8(item, quality):
     if not ADDON_DEV:
         httpd_thread.start()
 
-    item.headers = resp.request.headers
-    item.cookies.update(resp.cookies)
-    item.mimetype = 'application/x-mpegURL'
-
-    ## need to use .m3u8 or headers break
-    item.path = 'http://{host}:{port}/{random}/playlist.m3u8'.format(host=server_address[0], port=server_address[1], random=int(time.time()))
+    return True
 
 def single_request(httpd):
     log.debug('Single Request Thread: STARTED')
@@ -248,6 +192,56 @@ def reset_ia_settings(settings):
     log.debug('Quality Settings Reset Thread: DONE')
 
 def parse_ia(item, quality):
+    from .session import Session
+
+    playlist_url = item.path.split('|')[0]
+
+    try:
+        resp = Session().get(playlist_url, headers=item.headers, cookies=item.cookies)
+    except Exception as e:
+        log.exception(e)
+        result = False
+    else:
+        result = resp.ok
+
+    if not result:
+        raise Error(_(_.PLAYBACK_ERROR, error_code=resp.status_code))
+
+    min_bandwidth, max_bandwidth = quality, quality
+
+    if item.mimetype == 'application/x-mpegURL':
+        m3u8 = M3U8(resp.text, resp.url)
+        qualities = m3u8.qualities()
+        if not qualities:
+            return True
+
+        if quality == QUALITY_ASK:
+            quality = select_quality(qualities)
+
+            if not quality:
+                return False
+
+            elif quality == QUALITY_PASS:
+                return True
+
+        min_bandwidth, max_bandwidth = m3u8.bandwidth_range(quality)
+    else:
+        mpd = MPD(resp.text)
+        qualities = mpd.qualities()
+        if not qualities:
+            return True
+
+        if quality == QUALITY_ASK:
+            quality = select_quality(qualities)
+
+            if not quality:
+                return False
+
+            elif quality == QUALITY_PASS:
+                return True
+
+        min_bandwidth, max_bandwidth = mpd.bandwidth_range(quality)
+
     settings = {
         'MINBANDWIDTH':        '0',
         'MAXBANDWIDTH':        '0',
@@ -260,19 +254,16 @@ def parse_ia(item, quality):
 
     orig_settings = inputstream.get_settings(settings.keys())
     if not orig_settings:
-        return
+        return True
 
-    if quality == QUALITY_BEST:
-        quality = 1000000000
-    elif quality == QUALITY_LOWEST:
-        quality = 1
-
-    settings.update({'MINBANDWIDTH': quality, 'MAXBANDWIDTH': quality})
+    settings.update({'MINBANDWIDTH': min_bandwidth, 'MAXBANDWIDTH': max_bandwidth})
     inputstream.set_settings(settings)
 
     settings_thread = Thread(target=reset_ia_settings, args=(orig_settings,))
     settings_thread.daemon = True
     settings_thread.start()
+
+    return True
 
 def parse(item, quality=None):
     url   = item.path.split('|')[0]
@@ -298,14 +289,7 @@ def parse(item, quality=None):
     else:
         quality = int(quality)
 
-    if quality == QUALITY_ASK:
-        quality = select_quality()
-        if not quality:
-            return False
-
     if quality == QUALITY_PASS:
         return True
 
-    method(item, quality)
-
-    return True
+    return method(item, quality)

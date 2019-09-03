@@ -76,18 +76,6 @@ class Model(peewee.Model):
     def truncate(cls):
         return super(Model, cls).delete().execute()
 
-    @classmethod
-    def replace_many(cls, data):
-        with db.atomic():
-            for idx in range(0, len(data), DB_MAX_INSERTS):
-                super(Model, cls).replace_many(data[idx:idx+DB_MAX_INSERTS]).execute()
-
-    # @classmethod
-    # def insert_many(cls, data):
-    #     with db.atomic():
-    #         for idx in range(0, len(data), DB_MAX_INSERTS):
-    #             super(Model, cls).insert_many(data[idx:idx+DB_MAX_INSERTS]).execute()
-
     def to_dict(self):
         data = {}
 

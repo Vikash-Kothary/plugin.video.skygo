@@ -216,7 +216,7 @@ class Item(gui.Item):
             result = quality_player.parse(self, quality=quality)
         else:
             result = True
-        
+
         li     = self.get_li()
         handle = _handle()
 
