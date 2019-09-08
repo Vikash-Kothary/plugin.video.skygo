@@ -42,10 +42,13 @@ def get_kodi_version():
         return 0
 
 def process_brightcove(data):
-    try:
-        raise Error(data[0]['message'])
-    except KeyError:
-        pass
+    if type(data) != dict:
+        try:
+            msg = data[0].get('message', data[0]['error_code'])
+        except KeyError:
+            msg = _.NO_ERROR_MSG
+
+        raise Error(_(_.NO_BRIGHTCOVE_SRC, error=msg))
 
     sources = []
 

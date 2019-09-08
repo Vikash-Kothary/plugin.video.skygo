@@ -18,22 +18,29 @@ class InputstreamItem(object):
     license_type  = ''
     license_key   = ''
     mimetype      = ''
+    checked       = None
+
+    def do_check(self):
+        return False
 
     def check(self):
-        return False
+        if self.checked is None:
+            self.checked = self.do_check()
+            
+        return self.checked
 
 class HLS(InputstreamItem):
     manifest_type = 'hls'
     mimetype      = 'application/vnd.apple.mpegurl'
 
-    def check(self):
+    def do_check(self):
         return settings.getBool('use_ia_hls', False) and supports_hls()
 
 class MPD(InputstreamItem):
     manifest_type = 'mpd'
     mimetype      = 'application/dash+xml'
 
-    def check(self):
+    def do_check(self):
         return supports_mpd()
 
 class Playready(InputstreamItem):
@@ -41,7 +48,7 @@ class Playready(InputstreamItem):
     license_type  = 'com.microsoft.playready'
     mimetype      = 'application/vnd.ms-sstr+xml'
 
-    def check(self):
+    def do_check(self):
         return supports_playready()
 
 class Widevine(InputstreamItem):
@@ -55,7 +62,7 @@ class Widevine(InputstreamItem):
         self.challenge    = challenge
         self.response     = response
 
-    def check(self):
+    def do_check(self):
         return install_widevine()
 
 def get_ia_addon(required=False, install=True):

@@ -212,10 +212,10 @@ class Item(gui.Item):
         except:
             pass
 
+        result = True
         if settings.getBool('quality_enabled', True):
-            result = quality_player.parse(self, quality=quality)
-        else:
-            result = True
+            if quality_player.parse(self, quality=quality) == False:
+                result = False
 
         li     = self.get_li()
         handle = _handle()

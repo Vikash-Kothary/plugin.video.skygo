@@ -1,14 +1,8 @@
-import os
-import re
-import shutil
-import posixpath
-import time
-
 from threading import Thread
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from urlparse import urlparse, urljoin
+from urlparse import urlparse
 
 import xbmc
+import json
 
 from . import userdata, gui, router, inputstream, router
 from .constants import ADDON_DEV
@@ -81,83 +75,8 @@ def select_quality(qualities=None, is_settings=False):
 def _select_quality(**kwargs):
     select_quality(is_settings=True)
 
-class MainHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-Length', os.path.getsize(PROXY_FILE))
-        self.send_header('Content-Type', 'application/x-mpegURL')
-        self.end_headers()
-
-        with open(PROXY_FILE, 'rb') as f:
-            shutil.copyfileobj(f, self.wfile)
-
-    def log_message(self, format, *args):
-        log.debug('Proxy - {}'.format(format%args))
-
-def parse_m3u8(item, quality):
-    from .session import Session
-
-    playlist_url = item.path.split('|')[0]
-
-    try:
-        resp = Session().get(playlist_url, headers=item.headers, cookies=item.cookies)
-    except Exception as e:
-        log.exception(e)
-        result = False
-    else:
-        result = resp.ok
-
-    if not result:
-        raise Error(_(_.PLAYBACK_ERROR, error_code=resp.status_code))
-
-    item.headers = resp.request.headers
-    item.cookies.update(resp.cookies)
-    item.mimetype = 'application/x-mpegURL'
-
-    m3u8 = M3U8(resp.text, resp.url)
-    qualities = m3u8.qualities()
-    if not qualities:
-        return True
-
-    if quality == QUALITY_ASK:
-        quality = select_quality(qualities)
-        if not quality:
-            return False
-
-    if quality == QUALITY_PASS:
-        return True
-
-    text = m3u8.at_quality(quality)
-    with open(PROXY_FILE, 'wb') as f:
-        f.write(text)
-
-    server_address = ('127.0.0.1', 9977)
-
-    ## need to use .m3u8 or headers break
-    item.path = 'http://{host}:{port}/{random}/playlist.m3u8'.format(host=server_address[0], port=server_address[1], random=int(time.time()))
-
-    httpd          = HTTPServer(server_address, MainHandler)
-    httpd.timeout  = 5
-    httpd_thread   = Thread(target=single_request, args=(httpd,))
-    httpd_thread.daemon = True
-
-    if not ADDON_DEV:
-        httpd_thread.start()
-
-    return True
-
-def single_request(httpd):
-    log.debug('Single Request Thread: STARTED')
-    httpd.handle_request()
-    log.debug('Single Request Thread: DONE')
-    
-    try:
-        os.remove(PROXY_FILE)
-    except:
-        pass
-
-def reset_ia_settings(settings):
-    log.debug('Quality Settings Reset Thread: STARTED')
+def reset_thread(reset_func):
+    log.debug('Settings Reset Thread: STARTED')
 
     monitor    = xbmc.Monitor()
     player     = xbmc.Player()
@@ -187,11 +106,90 @@ def reset_ia_settings(settings):
         count += 1
         xbmc.sleep(sleep_time)
 
-    inputstream.set_settings(settings)
+    reset_func()
 
-    log.debug('Quality Settings Reset Thread: DONE')
+    log.debug('Settings Reset Thread: DONE')
 
-def parse_ia(item, quality):
+def get_gui_settings(keys):
+    settings = {}
+
+    for key in keys:
+        try:
+            value = json.loads(xbmc.executeJSONRPC('{{"jsonrpc":"2.0", "method":"Settings.GetSettingValue", "params":{{"setting":"{}"}}, "id":1}}'.format(key)))['result']['value']
+            settings[key] = value
+        except:
+            pass
+        
+    return settings
+
+def set_gui_settings(settings):
+    for key in settings:
+        xbmc.executeJSONRPC('{{"jsonrpc":"2.0", "method":"Settings.SetSettingValue", "params":{{"setting":"{}", "value":{}}}, "id":1}}'.format(key, settings[key]))
+
+def set_settings(min_bandwidth, max_bandwidth, is_ia=False):
+    reset_func = None
+
+    if is_ia:
+        new_ia_settings = {
+            'MINBANDWIDTH':        min_bandwidth,
+            'MAXBANDWIDTH':        max_bandwidth,
+            'IGNOREDISPLAY':       'true',
+            'STREAMSELECTION':     '0',
+            'MEDIATYPE':           '0',
+            'MAXRESOLUTION':       '0',
+            'MAXRESOLUTIONSECURE': '0',
+        }
+
+        current_ia_settings = inputstream.get_settings(new_ia_settings.keys())
+        if new_ia_settings != current_ia_settings:
+            inputstream.set_settings(new_ia_settings)
+            reset_func = lambda: inputstream.set_settings(current_ia_settings)
+    else:
+        new_gui_settings = {
+            'network.bandwidth': int(max_bandwidth/1000),
+        }
+
+        current_gui_settings = get_gui_settings(new_gui_settings.keys())
+        if new_gui_settings != current_gui_settings:
+            set_gui_settings(new_gui_settings)
+            reset_func = lambda: set_gui_settings(current_gui_settings)
+
+    if reset_func:
+        thread = Thread(target=reset_thread, args=(reset_func,))
+        thread.daemon = True
+        thread.start()
+
+def parse(item, quality=None):
+    if quality is None:
+        quality = userdata.get('quality', DEFAULT_QUALITY)
+    else:
+        quality = int(quality)
+
+    if quality == QUALITY_PASS:
+        return
+
+    url   = item.path.split('|')[0]
+    parse = urlparse(url.lower())
+    
+    if 'http' not in parse.scheme:
+        return
+
+    parser = None
+    if item.inputstream and item.inputstream.check():
+        is_ia = True
+        if item.inputstream.manifest_type == 'mpd':
+            parser = MPD()
+        elif item.inputstream.manifest_type == 'hls':
+            parser = M3U8()
+    else:
+        is_ia = False
+        if parse.path.endswith('.m3u') or parse.path.endswith('.m3u8'):
+            parser = M3U8()
+            item.mimetype = 'application/vnd.apple.mpegurl'
+
+    if not parser:
+        return
+
     from .session import Session
 
     playlist_url = item.path.split('|')[0]
@@ -205,91 +203,21 @@ def parse_ia(item, quality):
         result = resp.ok
 
     if not result:
-        raise Error(_(_.PLAYBACK_ERROR, error_code=resp.status_code))
+        return
 
-    min_bandwidth, max_bandwidth = quality, quality
+    parser.parse(resp.text)
+    qualities = parser.qualities()
+    if len(qualities) < 2:
+        return
 
-    if item.mimetype == 'application/x-mpegURL':
-        m3u8 = M3U8(resp.text, resp.url)
-        qualities = m3u8.qualities()
-        if not qualities:
-            return True
+    if quality == QUALITY_ASK:
+        quality = select_quality(qualities)
 
-        if quality == QUALITY_ASK:
-            quality = select_quality(qualities)
+    if not quality:
+        return False
 
-            if not quality:
-                return False
+    elif quality == QUALITY_PASS:
+        return
 
-            elif quality == QUALITY_PASS:
-                return True
-
-        min_bandwidth, max_bandwidth = m3u8.bandwidth_range(quality)
-    else:
-        mpd = MPD(resp.text)
-        qualities = mpd.qualities()
-        if not qualities:
-            return True
-
-        if quality == QUALITY_ASK:
-            quality = select_quality(qualities)
-
-            if not quality:
-                return False
-
-            elif quality == QUALITY_PASS:
-                return True
-
-        min_bandwidth, max_bandwidth = mpd.bandwidth_range(quality)
-
-    settings = {
-        'MINBANDWIDTH':        '0',
-        'MAXBANDWIDTH':        '0',
-        'IGNOREDISPLAY':       'true',
-        'STREAMSELECTION':     '0',
-        'MEDIATYPE':           '0',
-        'MAXRESOLUTION':       '0',
-        'MAXRESOLUTIONSECURE': '0',
-    }
-
-    orig_settings = inputstream.get_settings(settings.keys())
-    if not orig_settings:
-        return True
-
-    settings.update({'MINBANDWIDTH': min_bandwidth, 'MAXBANDWIDTH': max_bandwidth})
-    inputstream.set_settings(settings)
-
-    settings_thread = Thread(target=reset_ia_settings, args=(orig_settings,))
-    settings_thread.daemon = True
-    settings_thread.start()
-
-    return True
-
-def parse(item, quality=None):
-    url   = item.path.split('|')[0]
-    parse = urlparse(url.lower())
-    
-    if 'http' not in parse.scheme:
-        return True
-
-    if parse.path.endswith('.m3u') or parse.path.endswith('.m3u8'):
-        item.mimetype = 'application/x-mpegURL'
-    elif parse.path.endswith('.mpd'):
-        item.mimetype = 'application/dash+xml'
-
-    if item.properties.get('inputstreamaddon') or (item.inputstream and item.inputstream.check()):
-        method = parse_ia
-    elif item.mimetype == 'application/x-mpegURL':
-        method = parse_m3u8
-    else:
-        return True
-
-    if quality is None:
-        quality = userdata.get('quality', DEFAULT_QUALITY)
-    else:
-        quality = int(quality)
-
-    if quality == QUALITY_PASS:
-        return True
-
-    return method(item, quality)
+    min_bandwidth, max_bandwidth = parser.bandwidth_range(quality)
+    set_settings(min_bandwidth, max_bandwidth, is_ia)

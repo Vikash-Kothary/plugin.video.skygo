@@ -180,7 +180,8 @@ msgid "This system ({system}{arch} Kodi v{kodi_version}) does not yet support Wi
 msgstr ""
 
 msgctxt "#32013"
-msgid "Could not find a media source from Brightcove"
+msgid "Could not find a media source from Brightcove\n"
+"Server Message: {error}"
 msgstr ""
 
 msgctxt "#32014"
