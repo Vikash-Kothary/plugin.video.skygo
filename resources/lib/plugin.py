@@ -105,7 +105,7 @@ def _get_channels():
 
 @plugin.route()
 def live_tv(**kwargs):
-    folder = plugin.Folder(title=_.LIVE_TV)
+    folder = plugin.Folder(_.LIVE_TV)
 
     for row in _get_channels():
         folder.add_item(
@@ -120,7 +120,7 @@ def live_tv(**kwargs):
 
 @plugin.route()
 def channels(**kwargs):
-    folder = plugin.Folder(title=_.CHANNELS)
+    folder = plugin.Folder(_.CHANNELS)
 
     subscriptions = userdata.get('subscriptions', [])
 
@@ -147,7 +147,7 @@ def channels(**kwargs):
 @plugin.route()
 def content(label, section='', sortby=None, title=None, channels='', start=0, **kwargs):
     start = int(start)
-    folder = plugin.Folder(title=label)
+    folder = plugin.Folder(label)
 
     if not sortby:
         items = [[_.A_Z, 'TITLE'], [_.LATEST, 'LATEST'], [_.LAST_CHANCE, 'LASTCHANCE']]
@@ -186,7 +186,7 @@ def search(query=None, start=0, **kwargs):
 
         userdata.set('search', query)
 
-    folder = plugin.Folder(title=_(_.SEARCH_FOR, query=query))
+    folder = plugin.Folder(_(_.SEARCH_FOR, query=query))
 
     data = api.content(text=query, start=start)
     items = _process_content(data['data'])
@@ -242,7 +242,7 @@ def _process_content(rows):
 def series(id, **kwargs):
     data   = api.series(id)
 
-    folder = plugin.Folder(title=data['title'], fanart=IMAGE_URL.format(data['images'].get('PS','')), sort_methods=[xbmcplugin.SORT_METHOD_EPISODE, xbmcplugin.SORT_METHOD_UNSORTED, xbmcplugin.SORT_METHOD_LABEL, xbmcplugin.SORT_METHOD_DATEADDED])
+    folder = plugin.Folder(data['title'], fanart=IMAGE_URL.format(data['images'].get('PS','')), sort_methods=[xbmcplugin.SORT_METHOD_EPISODE, xbmcplugin.SORT_METHOD_UNSORTED, xbmcplugin.SORT_METHOD_LABEL, xbmcplugin.SORT_METHOD_DATEADDED])
 
     for row in data.get('subContent', []):
         folder.add_item(
