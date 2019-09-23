@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.skygo.nz" name="SKY GO" provider-name="MattHuisman.nz" version="0.13.0">
+<addon id="plugin.video.skygo.nz" name="SKY GO" provider-name="MattHuisman.nz" version="0.13.1">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
     <import addon="script.module.requests"/>
@@ -16,6 +16,6 @@ Subscription required.</description>
     <license></license>
     <language/>
     <website>https://www.matthuisman.nz/2018/08/sky-go-kodi-add-on.html</website>
-    <news>Update quality select</news>
+    <news>Update common</news>
   </extension>
 </addon>
