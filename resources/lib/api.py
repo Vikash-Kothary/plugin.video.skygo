@@ -1,12 +1,13 @@
 import hashlib
 import time
 import re
+
 import arrow
 
-from matthuisman import userdata, plugin, settings
-from matthuisman.session import Session
-from matthuisman.log import log
-from matthuisman.exceptions import Error
+from .matthuisman import userdata, plugin, settings
+from .matthuisman.session import Session
+from .matthuisman.log import log
+from .matthuisman.exceptions import Error
 
 from .constants import HEADERS, AUTH_URL, RENEW_URL, CHANNELS_URL, TOKEN_URL, DEVICE_IP, CONTENT_URL, PLAY_URL, WIDEVINE_URL, SUBSCRIPTIONS_URL, PLAY_CHANNEL_URL
 from .language import _
@@ -53,7 +54,7 @@ class API(object):
         return data['entries']
         
     def login(self, username, password):
-        device_id = hashlib.md5(username).hexdigest()
+        device_id = hashlib.md5(username.encode('utf8')).hexdigest()
 
         data = {
             "deviceDetails": "test",

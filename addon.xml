@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.skygo.nz" name="SKY GO" provider-name="MattHuisman.nz" version="0.13.2">
+<addon id="plugin.video.skygo.nz" name="SKY GO" provider-name="MattHuisman.nz" version="0.13.3">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
     <import addon="script.module.requests"/>
     <import addon="script.module.arrow"/>
+    <import addon="script.module.six"/>
+    <import addon="script.module.kodi-six"/>
   </requires>
   <extension point="xbmc.python.pluginsource" library="default.py" provides="video">
     <provides>video</provides>
@@ -16,6 +18,6 @@ Subscription required.</description>
     <license></license>
     <language/>
     <website>https://www.matthuisman.nz/2018/08/sky-go-kodi-add-on.html</website>
-    <news>Update common</news>
+    <news>Python3 (Kodi 19) Support</news>
   </extension>
 </addon>

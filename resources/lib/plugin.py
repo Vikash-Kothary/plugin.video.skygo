@@ -1,9 +1,10 @@
+import codecs
 from string import ascii_uppercase
 
-import xbmcplugin
+from kodi_six import xbmcplugin
 
-from matthuisman import plugin, gui, userdata, signals, inputstream, settings
-from matthuisman.exceptions import Error
+from .matthuisman import plugin, gui, userdata, signals, inputstream, settings
+from .matthuisman.exceptions import Error
 
 from .api import API
 from .constants import IMAGE_URL, HEADERS
@@ -315,9 +316,9 @@ def play_channel(id, **kwargs):
 @plugin.route()
 @plugin.merge()
 def playlist(output, **kwargs):
-    with open(output, 'wb') as f:
-        f.write('#EXTM3U\n')
+    with codecs.open(output, 'w', encoding='utf8') as f:
+        f.write(u'#EXTM3U\n')
 
         for row in _get_channels():
-            f.write('#EXTINF:-1 tvg-id="{id}" tvg-chno="{channel}" tvg-logo="{logo}",{name}\n{path}\n'.format(
-                        id=row['channel'], channel=row['channel'], name=row['label'].encode('utf8'), logo=row['image'], path=row['path']))
+            f.write(u'#EXTINF:-1 tvg-id="{id}" tvg-chno="{channel}" tvg-logo="{logo}",{name}\n{path}\n'.format(
+                        id=row['channel'], channel=row['channel'], name=row['label'], logo=row['image'], path=row['path']))
