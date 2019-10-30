@@ -30,19 +30,29 @@ def key_for(f, *args, **kwargs):
     return _build_key(func_name, *args, **kwargs)
 
 def _build_key(func_name, *args, **kwargs):
-    key = func_name
+    key = func_name.encode('utf8').decode('utf8')
 
     def to_str(item):
         try:
-            return item.encode('utf-8')
+            return item.encode('utf8').decode('utf8')
         except:
             return str(item)
+
+    def is_primitive(item):
+        try:
+            #python2
+            return type(item) in (int, str, dict, list, bool, float, unicode)
+        except:
+            #python3
+            return type(item) in (int, str, dict, list, bool, float)
     
-    for k in sorted(args):
-        key += to_str(k)
+    for k in args:
+        if is_primitive(k):
+            key += to_str(k)
 
     for k in sorted(kwargs):
-        key += to_str(k) + to_str(kwargs[k])
+        if is_primitive(kwargs[k]):
+            key += to_str(k) + to_str(kwargs[k])
 
     return hash_6(key)
 

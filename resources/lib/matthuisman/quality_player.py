@@ -43,40 +43,43 @@ def select_quality(qualities):
 
     return values[index]
 
-def reset_thread(reset_func):
+def reset_thread(is_ia, old_settings):
     log.debug('Settings Reset Thread: STARTED')
 
     monitor    = xbmc.Monitor()
     player     = xbmc.Player()
     sleep_time = 100#ms
 
-    #wait upto 3 seconds for playback to start
+    #wait upto 10 seconds for playback to start
     count = 0
     while not monitor.abortRequested():
         if player.isPlaying():
             break
 
-        if count > 3*(1000/sleep_time):
+        if count > 10*(1000/sleep_time):
             break
 
         count += 1
         xbmc.sleep(sleep_time)
 
-    #wait upto 30 seconds for playback to start
-    count = 0
+    # wait until playback stops
     while not monitor.abortRequested():
-        if not player.isPlaying() or player.getTime() > 0:
+        if not player.isPlaying():
             break
-
-        if count > 30*(1000/sleep_time):
-            break
-
-        count += 1
+        
         xbmc.sleep(sleep_time)
 
-    reset_func()
+    xbmc.sleep(2000)
+
+    #cant set settings while they are being used in kodi 17
+    if not player.isPlaying():
+        if is_ia:
+            inputstream.set_settings(old_settings)
+        else:
+            set_gui_settings(old_settings)
 
     log.debug('Settings Reset Thread: DONE')
+    xbmc.executebuiltin('Skin.SetString(quality_reset_thread,)')
 
 def get_gui_settings(keys):
     settings = {}
@@ -95,7 +98,7 @@ def set_gui_settings(settings):
         xbmc.executeJSONRPC('{{"jsonrpc":"2.0", "method":"Settings.SetSettingValue", "params":{{"setting":"{}", "value":{}}}, "id":1}}'.format(key, settings[key]))
 
 def set_settings(min_bandwidth, max_bandwidth, is_ia=False):
-    reset_func = None
+    current_settings = None
 
     if is_ia:
         new_ia_settings = {
@@ -111,30 +114,28 @@ def set_settings(min_bandwidth, max_bandwidth, is_ia=False):
 
         inputstream.set_bandwidth_bin(1000000000) #1000m/bit
 
-        current_ia_settings = inputstream.get_settings(new_ia_settings.keys())
-        if new_ia_settings != current_ia_settings:
+        current_settings = inputstream.get_settings(new_ia_settings.keys())
+        if new_ia_settings != current_settings:
             inputstream.set_settings(new_ia_settings)
-            reset_func = lambda: inputstream.set_settings(current_ia_settings)
     else:
         new_gui_settings = {
             'network.bandwidth': int(max_bandwidth/1000),
         }
 
-        current_gui_settings = get_gui_settings(new_gui_settings.keys())
-        if new_gui_settings != current_gui_settings:
+        current_settings = get_gui_settings(new_gui_settings.keys())
+        if new_gui_settings != current_settings:
             set_gui_settings(new_gui_settings)
-            reset_func = lambda: set_gui_settings(current_gui_settings)
 
-    if reset_func and not ADDON_DEV:
-        thread = Thread(target=reset_thread, args=(reset_func,))
-        thread.daemon = True
+    if current_settings and xbmc.getInfoLabel('Skin.String(quality_reset_thread)') != '1' and not ADDON_DEV:
+        xbmc.executebuiltin('Skin.SetString(quality_reset_thread,1)')
+        thread = Thread(target=reset_thread, args=(is_ia, current_settings))
         thread.start()
 
 def get_quality():
     return settings.getEnum('default_quality', QUALITY_TYPES, default=QUALITY_ASK)
 
 def add_context(item):
-    if item.playable and get_quality() != QUALITY_DISABLED:
+    if item.path and item.playable and get_quality() != QUALITY_DISABLED:
         url = router.add_url_args(item.path, **{QUALITY_TAG: QUALITY_ASK})
         item.context.append((_.PLAYBACK_QUALITY, 'XBMC.PlayMedia({})'.format(url)))
 
@@ -190,8 +191,6 @@ def parse(item, quality=None):
     try:
         parser.parse(resp.text)
         qualities = parser.qualities()
-        if not qualities:
-            raise ParserError(_.QUALITY_NONE_FOUND)
     except Exception as e:
         log.exception(e)
         gui.ok(_(_.QUALITY_PARSE_ERROR, error=e))

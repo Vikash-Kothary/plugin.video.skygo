@@ -19,7 +19,7 @@ def before_dispatch():
 
 @plugin.route('')
 def home(**kwargs):
-    folder = plugin.Folder()
+    folder = plugin.Folder(cacheToDisc=False)
 
     if not api.logged_in:
         folder.add_item(label=_(_.LOGIN, _bold=True), path=plugin.url_for(login))

@@ -390,9 +390,8 @@ msgctxt "#32061"
 msgid "Playback Quality"
 msgstr ""
 
-msgctxt "#32062"
-msgid "No substreams found in playback file"
-msgstr ""
+
+
 
 msgctxt "#32063"
 msgid "Live Play Action"

@@ -1,10 +1,8 @@
 import os
 import json
+import codecs
 
-try:
-    import cPickle as pickle
-except:
-    import pickle
+from six.moves import cPickle
 
 from . import peewee, userdata, signals
 from .constants import DB_PATH, DB_PRAGMAS, DB_MAX_INSERTS, DB_TABLENAME, ADDON_DEV
@@ -29,11 +27,17 @@ class HashField(peewee.TextField):
 class PickledField(peewee.BlobField):
     def db_value(self, value):
         if value != None:
-            return super(PickledField, self).db_value(pickle.dumps(value, pickle.HIGHEST_PROTOCOL))
+            return super(PickledField, self).db_value(cPickle.dumps(value))
 
     def python_value(self, value):
         if value != None:
-            return super(PickledField, self).python_value(pickle.loads(str(value)))
+            try:
+                if type(value) == buffer:
+                    value = str(value)
+            except:
+                pass
+
+            return super(PickledField, self).python_value(cPickle.loads(value))
 
 class JSONField(peewee.TextField):
     def db_value(self, value):

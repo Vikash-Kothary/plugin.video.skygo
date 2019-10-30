@@ -5,6 +5,7 @@ import shutil
 import platform
 import base64
 import struct
+import json
 
 from kodi_six import xbmc, xbmcaddon
 
@@ -13,6 +14,11 @@ from .constants import ADDON_ID, ADDON_NAME, ADDON_PROFILE
 from .log import log
 from .exceptions import Error 
 from . import gui
+
+def jwt_data(token):
+    b64_string = token.split('.')[1]
+    b64_string += "=" * ((4 - len(b64_string) % 4) % 4) #fix padding
+    return json.loads(base64.b64decode(b64_string))
 
 def remove_file(file_path):
     try:
