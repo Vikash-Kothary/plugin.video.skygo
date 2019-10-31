@@ -13,7 +13,6 @@ TOKEN_URL         = 'https://6cwj6qmdoa.execute-api.ap-southeast-2.amazonaws.com
 RENEW_URL         = 'https://4azub3wqb8.execute-api.ap-southeast-2.amazonaws.com/prod/auth/skygo/token/v1/renew'
 CONTENT_URL       = 'https://www.skygo.co.nz/pub-api/content/v1/'
 IMAGE_URL         = 'https://prod-images.skygo.co.nz/{}'
-PLAY_URL          = 'https://feed.theplatform.com/f/7tMqSC/T2XJ65T_soBz'
-PLAY_CHANNEL_URL  = 'https://link.theplatform.com/s/7tMqSC/media/{id}?feed=SkyGo&auth={auth}'
+PLAY_URL          = 'https://feed.theplatform.com/f/7tMqSC/0_V4XPWsMSE9'
 SUBSCRIPTIONS_URL = 'https://z4a6uom8wa.execute-api.ap-southeast-2.amazonaws.com/prod/v2/onlineSubscriptions/?profileId={}'
 WIDEVINE_URL      = 'https://widevine.entitlement.theplatform.com/wv/web/ModularDrm/getWidevineLicense?schema=1.0&token={token}&form=json&account=http://access.auth.theplatform.com/data/Account/2682481291&_releasePid={pid}&_widevineChallenge={challenge}'

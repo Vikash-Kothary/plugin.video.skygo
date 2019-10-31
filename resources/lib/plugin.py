@@ -5,6 +5,7 @@ from kodi_six import xbmcplugin
 
 from .matthuisman import plugin, gui, userdata, signals, inputstream, settings
 from .matthuisman.exceptions import Error
+from .matthuisman.constants import ROUTE_LIVE_TAG
 
 from .api import API
 from .constants import IMAGE_URL, HEADERS
@@ -68,30 +69,18 @@ def _get_channels():
     channels = []
     rows = api.channels()
 
-    def _get_play_url(content):
-        for row in content:
-            if 'SkyGoStream' in row['plfile$assetTypes']:
-                return row['plfile$streamingUrl']
-
-        return None
-
     for row in sorted(rows, key=lambda r: float(r.get('sky$liveChannelOrder', 'inf'))):
         if 'Live' not in row.get('sky$channelType', []):
             continue
 
-        channel_id = row['plmedia$publicUrl'].rsplit('/')[-1]
-
         label = row['title']
 
         subscribed = _is_subscribed(subscriptions, row.get('media$categories'))
-        play_url   = _get_play_url(row.get('media$content'))
 
         if not subscribed:
             label = _(_.LOCKED, label=label)
-        elif 'faxs' in play_url:
-            label = _(_.ADOBE_DRM, label=label)
 
-        if settings.getBool('hide_unplayable', False) and (not subscribed or 'faxs' in play_url):
+        if settings.getBool('hide_unplayable', False) and not subscribed:
             continue
 
         channels.append({
@@ -99,7 +88,7 @@ def _get_channels():
             'channel': row.get('sky$skyGOChannelID', ''),
             'description': row.get('description'),
             'image': _get_image(row),
-            'path':  plugin.url_for(play_channel, id=channel_id, _is_live=True),
+            'path':  plugin.url_for(play, id=row['id'], _is_live=True),
         })
 
     return channels
@@ -291,7 +280,7 @@ def logout(**kwargs):
 def play(id, **kwargs):
     url, license = api.play_media(id)
 
-    return plugin.Item(
+    item = plugin.Item(
         path        = url,
         headers     = HEADERS,
         inputstream = inputstream.Widevine(
@@ -302,16 +291,10 @@ def play(id, **kwargs):
         ),
     )
 
-@plugin.route()
-@plugin.login_required()
-def play_channel(id, **kwargs):
-    url = api.play_channel(id)
+    if kwargs.get(ROUTE_LIVE_TAG):
+        item.properties['inputstream.adaptive.manifest_update_parameter'] = 'full'
 
-    return plugin.Item(
-        path        = url,
-        headers     = HEADERS,
-        inputstream = inputstream.HLS(),
-    )
+    return item
 
 @plugin.route()
 @plugin.merge()

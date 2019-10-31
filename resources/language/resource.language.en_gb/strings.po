@@ -38,7 +38,8 @@ msgid "Failed to login.\n"
 msgstr ""
 
 msgctxt "#30005"
-msgid "This stream is protected by Adobe Access DRM and can not be played in KODI"
+msgid "This stream is currently protected by Adobe Access DRM and can not be played in Kodi\n"
+"Sky should start to remove Adobe DRM in the near future"
 msgstr ""
 
 msgctxt "#30006"

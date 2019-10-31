@@ -196,7 +196,7 @@ def parse(item, quality=None):
         gui.ok(_(_.QUALITY_PARSE_ERROR, error=e))
         return
 
-    if len(qualities) == 1:
+    if len(qualities) < 2:
         return
 
     if quality == QUALITY_ASK:

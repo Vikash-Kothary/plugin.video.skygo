@@ -9,7 +9,7 @@ from .matthuisman.session import Session
 from .matthuisman.log import log
 from .matthuisman.exceptions import Error
 
-from .constants import HEADERS, AUTH_URL, RENEW_URL, CHANNELS_URL, TOKEN_URL, DEVICE_IP, CONTENT_URL, PLAY_URL, WIDEVINE_URL, SUBSCRIPTIONS_URL, PLAY_CHANNEL_URL
+from .constants import HEADERS, AUTH_URL, RENEW_URL, CHANNELS_URL, TOKEN_URL, DEVICE_IP, CONTENT_URL, PLAY_URL, WIDEVINE_URL, SUBSCRIPTIONS_URL
 from .language import _
 
 class APIError(Error):
@@ -140,35 +140,30 @@ class API(object):
             if video['plfile$format'] == 'MPEG-DASH':
                 chosen = video
                 break
+
+        if chosen['plfile$format'].upper() == 'F4M':
+            raise APIError(_.ADOBE_ERROR)
  
-        url     = '{}&auth={}&formats=mpeg-dash&tracking=true'.format(chosen['plfile$url'], token)
-        pid     = chosen['plfile$url'].split('?')[0].split('/')[-1]
+        url = '{}&auth={}&formats=mpeg-dash&tracking=true&format=SMIL'.format(chosen['plfile$url'], token)
+        r = self._session.get(url)
+
+        smil = r.text
+        
+        url = re.search('video src="(.*?)"', smil)
+        if not url:
+            error_msg = re.search('title="(.*?)"', smil)
+            if not error_msg:
+                error_msg = ''
+            else:
+                error_msg = error_msg.group(1)
+
+            raise APIError(_(_.PLAY_ERROR, message=error_msg))
+            
+        url     = url.group(1)
+        pid     = re.search('pid=(.*?)\|', smil).group(1)
         license = WIDEVINE_URL.format(token=token, pid=pid, challenge='B{SSM}')
 
-        url = self._get_location(url)
-
         return url, license
-
-    def _get_location(self, url):
-        resp = self._session.get(url, allow_redirects=False)
-
-        if resp.status_code != 302:
-            data = resp.json()
-            raise APIError(_(_.PLAY_ERROR, message=data.get('description')))
-
-        url = resp.headers.get('location')
-        if 'faxs' in url:
-            raise APIError(_.ADOBE_ERROR)
-
-        return url
-
-    def play_channel(self, id):
-        token = self._get_play_token()
-        url = PLAY_CHANNEL_URL.format(id=id, auth=token)
-
-        url = self._get_location(url)
-
-        return url
 
     def logout(self):
         userdata.delete('device_id')
