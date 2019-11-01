@@ -7,7 +7,7 @@ import struct
 
 from kodi_six import xbmc, xbmcaddon
 
-from . import gui, settings
+from . import gui, settings, userdata
 from .log import log
 from .constants import IA_ADDON_ID, IA_VERSION_KEY, IA_HLS_MIN_VER, IA_MPD_MIN_VER, IA_MODULES_URL, IA_CHECK_EVERY
 from .language import _
@@ -157,12 +157,8 @@ def install_widevine(reinstall=False):
         raise InputStreamError(_(_.IA_KODI18_REQUIRED, system=system))
 
     elif system == 'Android':
-        first_run = int(ia_addon.getSetting('_first_run') or 1)
-
-        if first_run:
-            ia_addon.setSetting('_first_run', '0')
-
-        if first_run or reinstall:
+        if not userdata.get('_wv_warning', 0) or reinstall:
+            userdata.set('_wv_warning', 1)
             gui.ok(_.IA_ANDROID_REINSTALL)
 
         return True
@@ -176,10 +172,10 @@ def install_widevine(reinstall=False):
     elif system not in DST_FILES:
         raise InputStreamError(_(_.IA_NOT_SUPPORTED, system=system, arch=arch, kodi_version=kodi_version))
 
-    last_check   = int(ia_addon.getSetting('_last_check') or 0)
     decryptpath  = xbmc.translatePath(ia_addon.getSetting('DECRYPTERPATH'))
     wv_path      = os.path.join(decryptpath, DST_FILES[system])
     installed    = md5sum(wv_path)
+    last_check   = int(userdata.get('_wv_last_check', 0))
 
     if not installed:
         reinstall = True
@@ -188,7 +184,7 @@ def install_widevine(reinstall=False):
         return True
 
     ## DO INSTALL ##
-    ia_addon.setSetting('_last_check', str(int(time.time())))
+    userdata.set('_wv_last_check', int(time.time()))
 
     from .session import Session
 
@@ -199,8 +195,8 @@ def install_widevine(reinstall=False):
     widevine     = r.json()['widevine']
     wv_versions  = widevine['platforms'].get(system + arch, [])
     latest       = wv_versions[0]
-    latest_known = ia_addon.getSetting('_latest_md5')
-    ia_addon.setSetting('_latest_md5', latest['md5'])
+    latest_known = userdata.get('_wv_latest_md5')
+    userdata.set('_wv_latest_md5', latest['md5'])
 
     if not wv_versions:
         raise InputStreamError(_(_.IA_NOT_SUPPORTED, system=system, arch=arch, kodi_version=kodi_version))
